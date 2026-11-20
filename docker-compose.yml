@@ -1,0 +1,7 @@
+services:
+  juice-shop:
+    image: bkimminich/juice-shop:v17.1.1
+    container_name: purple_juice_shop
+    ports:
+      - "3000:3000"
+    restart: unless-stopped

@@ -1,0 +1,39 @@
+name: Purple Team CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - "feature/**"
+
+jobs:
+  quality-and-security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install linting and security tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff bandit
+
+      - name: Verify Markdown documentation structure
+        run: |
+          test -s README.md
+          test -s ARCHITECTURE.md
+          test -s MITRE_MAPPING.md
+          test -s CONTRIBUTING.md
+          test -s CHANGELOG.md
+
+      - name: Run Ruff linter
+        run: ruff check soar/
+
+      - name: Run Bandit static security analysis
+        run: bandit -r soar/
