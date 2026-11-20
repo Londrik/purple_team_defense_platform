@@ -1,0 +1,54 @@
+[
+  {
+    "rule_id": "purple-sqli-t1190",
+    "name": "Purple Team: SQL Injection Attempt (T1190)",
+    "severity": "high",
+    "risk_score": 85,
+    "index": ["filebeat-*"],
+    "query": "url.path:(*' OR * OR *UNION*SELECT* OR *--*)",
+    "threat": {
+      "framework": "MITRE ATT&CK",
+      "tactic": {"id": "TA0001", "name": "Initial Access"},
+      "technique": [{"id": "T1190", "name": "Exploit Public-Facing Application"}]
+    }
+  },
+  {
+    "rule_id": "purple-lfi-t1083",
+    "name": "Purple Team: Path Traversal / LFI Discovery (T1083)",
+    "severity": "high",
+    "risk_score": 80,
+    "index": ["filebeat-*"],
+    "query": "url.path:(*../..* OR *etc/passwd*)",
+    "threat": {
+      "framework": "MITRE ATT&CK",
+      "tactic": {"id": "TA0007", "name": "Discovery"},
+      "technique": [{"id": "T1083", "name": "File and Directory Discovery"}]
+    }
+  },
+  {
+    "rule_id": "purple-xss-t1189",
+    "name": "Purple Team: Reflected XSS Probe (T1189)",
+    "severity": "medium",
+    "risk_score": 65,
+    "index": ["filebeat-*"],
+    "query": "url.path:(*<script* OR *javascript:* OR *onerror=*)",
+    "threat": {
+      "framework": "MITRE ATT&CK",
+      "tactic": {"id": "TA0001", "name": "Initial Access"},
+      "technique": [{"id": "T1189", "name": "Drive-by Compromise"}]
+    }
+  },
+  {
+    "rule_id": "purple-bola-t1068",
+    "name": "Purple Team: BOLA / IDOR Unauthorized Object Access (T1068)",
+    "severity": "high",
+    "risk_score": 85,
+    "index": ["filebeat-*"],
+    "query": "url.path:/rest/basket/* AND http.response.status_code:(200 OR 401 OR 403)",
+    "threat": {
+      "framework": "MITRE ATT&CK",
+      "tactic": {"id": "TA0004", "name": "Privilege Escalation"},
+      "technique": [{"id": "T1068", "name": "Exploitation for Privilege Escalation"}]
+    }
+  }
+]

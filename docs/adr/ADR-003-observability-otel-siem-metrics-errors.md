@@ -1,0 +1,22 @@
+# ADR-003: Observability Stack, Stable Tooling Versions, and Rationale
+
+- **Status:** Accepted
+- **Context:** Project C requires end-to-end visibility across attack telemetry normalization, detection correlation, automated firewall containment, service tracing, operational metrics, and application error tracking without bloating the lab with redundant tools.
+- **Decision:** Standardize the observability and quality stack around stable versions and clear responsibilities:
+  - **Elasticsearch + Kibana + Filebeat + ECS 8.x:** SIEM ingestion, ECS normalization, MITRE ATT&CK v14+ correlation rules, and alert webhook triggering.
+  - **OpenTelemetry (`opentelemetry-api` + `opentelemetry-sdk`):** Vendor-neutral distributed tracing spans around SOAR containment operations.
+  - **Prometheus + Grafana (optional operational metrics/dashboards):** Time-series metrics scraping and visual dashboards for latency, containment outcomes, and service health when enabled.
+  - **Sentry (`sentry-sdk`):** Unhandled exception, stack-trace, and application error tracking when a DSN is configured.
+  - **Quality & Mutation Gates (`ruff`, `mypy`, `bandit`, `pytest`, `mutmut`, `gitleaks`):** Static analysis, strict typing, SAST, unit/regression tests, mutation testing, and secret scanning.
+- **Stable Versions & Rationale:**
+  - **Python `3.11+` (`3.14` in local Fedora environment):** Modern type hints (`str | None`, `list[...]`), standard `datetime.UTC`, and strict static verification (`mypy --strict`).
+  - **FastAPI `>=0.115.0` & Pydantic `>=2.9.0`:** High-performance async webhook ingestion with strict schema validation (`extra="forbid"`, `frozen=True`).
+  - **OpenTelemetry SDK `1.45.2`:** Standard span context propagation without locking into a single tracing vendor.
+  - **Sentry SDK `2.75.0`:** Lightweight optional error reporting (`no-op` when `dsn` is unset) to separate runtime bugs from security audit logs.
+  - **Ruff `>=0.17.6`, Bandit `>=1.9.4`, Pytest `>=9.2.0`, Mypy `>=2.4.1`, Mutmut:** Enforces style, SAST checks, deterministic test coverage, and mutation test resilience.
+- **Consequences:**
+  - Keeps ECS security audit logs (`/var/log/soar_containment.json`) separated from application error tracking (Sentry) and trace spans (OpenTelemetry).
+  - Adds optional metrics/error dependencies that remain safe no-ops unless explicitly configured.
+- **Rejected Alternatives:**
+  - Using Sentry as a replacement for SIEM/MITRE correlation (Sentry tracks software defects rather than security event correlation and host containment).
+  - Running a heavy observability stack by default when lightweight spans and ECS logs satisfy the core loop.
