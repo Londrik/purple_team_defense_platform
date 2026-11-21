@@ -28,6 +28,8 @@ jobs:
 
       - name: Gitleaks secret scan
         uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Validate core documentation
         run: |
