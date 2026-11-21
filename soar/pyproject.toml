@@ -21,3 +21,7 @@ warn_unused_configs = true
 filterwarnings = [
     "ignore:Using `httpx` with `starlette.testclient` is deprecated:DeprecationWarning",
 ]
+
+[tool.mutmut]
+paths_to_mutate = ["soar/app"]
+tests_dir = ["soar/tests"]

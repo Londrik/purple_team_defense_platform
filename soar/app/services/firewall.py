@@ -207,3 +207,34 @@ class FirewallContainmentService:
         audit_path.parent.mkdir(parents=True, exist_ok=True)
         with audit_path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(record) + "\n")
+
+
+SAFELIST_NETWORKS = (
+    "127.0.0.0/8",
+    "10.0.0.0/8",
+    "172.16.0.0/12",
+    "192.168.0.0/16",
+    "::1/128",
+    "fc00::/7",
+    "fe80::/10",
+)
+
+
+def is_safelisted(ip_address: str) -> bool:
+    """Return True if the given IPv4 or IPv6 address belongs to a protected network."""
+    import ipaddress
+
+    try:
+        parsed = ipaddress.ip_address(ip_address.strip())
+    except ValueError:
+        return False
+
+    if parsed.is_loopback or parsed.is_link_local:
+        return True
+
+    for cidr in SAFELIST_NETWORKS:
+        network = ipaddress.ip_network(cidr, strict=False)
+        if parsed.version == network.version and parsed in network:
+            return True
+
+    return False
