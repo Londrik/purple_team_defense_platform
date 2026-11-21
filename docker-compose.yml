@@ -5,3 +5,68 @@ services:
     ports:
       - "3000:3000"
     restart: unless-stopped
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    container_name: purple_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data:z
+    restart: unless-stopped
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.12.0
+    container_name: purple_kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.12.0
+    container_name: purple_filebeat
+    user: root
+    command: ["filebeat", "-e", "--strict.perms=false"]
+    volumes:
+      - ./telemetry/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro,z
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro,z
+      - /var/run/docker.sock:/var/run/docker.sock:ro,z
+    depends_on:
+      - elasticsearch
+      - juice-shop
+    restart: unless-stopped
+
+  soar-receiver:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM python:3.12-slim
+        WORKDIR /app
+        COPY soar/requirements.txt ./requirements.txt
+        RUN pip install --no-cache-dir -r requirements.txt
+        COPY soar ./soar
+        ENV PYTHONPATH=/app
+        CMD ["uvicorn", "soar.app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+    container_name: purple_soar_receiver
+    network_mode: "host"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      - SOAR_SECRET_TOKEN=${SOAR_SECRET_TOKEN:-change-me-in-production}
+      - SOAR_AUDIT_LOG_PATH=/var/log/soar/soar_containment.json
+      - IPTABLES_CHAIN=PURPLE_JAIL
+    volumes:
+      - /var/log/soar:/var/log/soar:z
+    restart: unless-stopped
+
+volumes:
+  es_data:
