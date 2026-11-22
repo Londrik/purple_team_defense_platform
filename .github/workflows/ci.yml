@@ -3,60 +3,82 @@ name: Purple Team CI
 on:
   push:
     branches:
-      - "**"
+      - main
+      - develop
+      - "feat/**"
+      - "fix/**"
+      - "chore/**"
   pull_request:
     branches:
-      - "**"
+      - main
+      - develop
 
 jobs:
   quality-and-security:
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v5
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install dependencies, quality tools, and mutmut
         run: |
           python -m pip install --upgrade pip
           pip install -r soar/requirements.txt
           pip install ruff bandit pytest mypy mutmut
 
-      - name: Gitleaks secret scan
+      - name: Run Gitleaks secret and history scan
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Validate core documentation
+      - name: Verify documentation and Mermaid blocks
         run: |
           for doc in README.md ARCHITECTURE.md MITRE_MAPPING.md CONTRIBUTING.md CHANGELOG.md; do
             test -s "$doc"
           done
-          python3 -c 'import pathlib; [print(d) for d in ["README.md", "ARCHITECTURE.md"] if not ("```mermaid" in pathlib.Path(d).read_text(encoding="utf-8") or "~~~mermaid" in pathlib.Path(d).read_text(encoding="utf-8"))]'
-          python3 -c 'import json, pathlib, re; t = pathlib.Path("MITRE_MAPPING.md").read_text(encoding="utf-8"); blocks = re.findall(r"~~~json\n(.*?)~~~", t, flags=re.DOTALL); assert len(blocks) >= 4; [d.__getitem__("threat")["framework"] == "MITRE ATT&CK" and d["threat"]["tactic"]["id"] and d["threat"]["technique"]["id"] for d in (json.loads(b) for b in blocks)]'
+          python3 -c '
+          import pathlib
+          for doc in ["README.md", "ARCHITECTURE.md"]:
+              text = pathlib.Path(doc).read_text(encoding="utf-8")
+              assert "```mermaid" in text or "~~~mermaid" in text, f"Missing mermaid block in {doc}"
+          '
 
-      - name: Lint and format check
+      - name: Validate ECS and MITRE JSON schemas
+        run: |
+          python3 -c '
+          import json, pathlib, re
+          text = pathlib.Path("MITRE_MAPPING.md").read_text(encoding="utf-8")
+          blocks = re.findall(r"~~~json\n(.*?)~~~", text, flags=re.DOTALL)
+          assert len(blocks) >= 4, "Expected at least 4 ECS JSON examples"
+          for raw in blocks:
+              data = json.loads(raw)
+              assert data["threat"]["framework"] == "MITRE ATT&CK"
+              assert data["threat"]["tactic"]["id"]
+              assert data["threat"]["technique"]["id"]
+          '
+
+      - name: Run Ruff linter and formatter check
         run: |
           ruff check soar/
           ruff format --check soar/
 
-      - name: Static type check
-        run: |
-          mypy --config-file soar/pyproject.toml soar/app soar/tests
+      - name: Run Mypy strict type check
+        run: mypy --config-file soar/pyproject.toml soar/app soar/tests
 
-      - name: Static security scan
-        run: |
-          bandit -r soar/app
+      - name: Run Bandit static security analysis
+        run: bandit -r soar/app
 
-      - name: Run unit and regression tests
-        run: |
-          pytest soar/tests -v
+      - name: Run Pytest unit suite
+        run: pytest soar/tests -v
 
-      - name: Mutation testing
+      - name: Run mutation testing with mutmut
         run: |
           if [ -n "$(find soar/app -name '*.py' ! -name '__init__.py')" ]; then
             PYTHONPATH=soar mutmut run
